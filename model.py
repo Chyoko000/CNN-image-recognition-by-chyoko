@@ -14,19 +14,26 @@ def build_model(img_w, img_h, n_classes):
     model = models.Sequential([
         # 输入层：指定图片大小及通道数
         layers.InputLayer(input_shape=(img_w, img_h, 3)),
-        # 卷积层1：64 个 3x3 卷积核，ReLU 激活
+        # 卷积块1
+        layers.Conv2D(32, (3, 3), padding='same', activation='relu'),
+        layers.BatchNormalization(),
+        layers.Conv2D(32, (3, 3), padding='same', activation='relu'),
+        layers.BatchNormalization(),
+        layers.MaxPooling2D(pool_size=(2, 2)),
+        layers.Dropout(0.25),
+
+        # 卷积块2
         layers.Conv2D(64, (3, 3), padding='same', activation='relu'),
+        layers.BatchNormalization(),
+        layers.Conv2D(64, (3, 3), padding='same', activation='relu'),
+        layers.BatchNormalization(),
         layers.MaxPooling2D(pool_size=(2, 2)),
-        # 卷积层2：16 个 3x3 卷积核，ReLU 激活
-        layers.Conv2D(16, (3, 3), padding='same', activation='relu'),
-        layers.MaxPooling2D(pool_size=(2, 2)),
+        layers.Dropout(0.25),
         # 展平层
         layers.Flatten(),
-        # 全连接层1：128 个神经元
         layers.Dense(128, activation='relu'),
-        # 全连接层2：128 个神经元
-        layers.Dense(128, activation='relu'),
-        # 输出层：不使用 softmax（配合 loss 中的 from_logits=True）
+        layers.BatchNormalization(),
+        layers.Dropout(0.5),
         layers.Dense(n_classes)
     ])
     return model
