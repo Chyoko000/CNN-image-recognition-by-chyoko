@@ -5,10 +5,10 @@ import tensorflow as tf
 from PIL import Image
 
 # 原始图片的存储位置
-orig_picture = 'D:\Neuron\Bsdata/flower/flower_photos'
+orig_picture = r"D:\Neuron\Bsdata\flower\flower_photos"
 
 # 生成图片的存储位置
-gen_picture = 'D:\Neuron\Bsdata/flower/input_data'
+gen_picture = r"D:\Neuron\Bsdata\flower\input_data"
 
 # 需要的识别类型
 classes = {'dandelion', 'roses', 'sunflowers','tulips'}

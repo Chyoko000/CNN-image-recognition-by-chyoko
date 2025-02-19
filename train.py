@@ -1,77 +1,49 @@
-# 导入文件
 import os
 import numpy as np
 import tensorflow as tf
 import input_data
 import model
 
-# 变量声明
-N_CLASSES = 4  # 四种花类型
-IMG_W = 64  # resize图像，太大的话训练时间久
-IMG_H = 64
-BATCH_SIZE = 20
-CAPACITY = 200
-MAX_STEP = 10000  # 一般大于10K
-learning_rate = 0.0001  # 一般小于0.0001
+# ------------------ 参数设置 ------------------
+N_CLASSES = 4         # 花的种类数
+IMG_W = 64            # 图像宽度
+IMG_H = 64            # 图像高度
+BATCH_SIZE = 20       # 每个批次图像数量
+CAPACITY = 200        # shuffle 时的缓冲区大小
+EPOCHS = 5            # 训练轮数（根据需要调整）
+MAX_STEP = 20        # 每个 epoch 的步数（根据数据集大小调整）
+learning_rate = 0.0001  # 学习率
 
-# 获取批次batch
-train_dir = 'D:/ML/flower/input_data'  # 训练样本的读入路径
-logs_train_dir = 'D:/ML/flower/save'  # logs存储路径
+# 数据和日志路径
+train_dir = r"D:\Neuron\Bsdata\flower\input_data"  # 训练数据目录
+logs_train_dir = r"D:\Neuron\Bsdata\flower\save"     # 日志及模型保存目录
 
-# train, train_label = input_data.get_files(train_dir)
-train, train_label, val, val_label = input_data.get_files(train_dir, 0.3)
-# 训练数据及标签
-train_batch, train_label_batch = input_data.get_batch(train, train_label, IMG_W, IMG_H, BATCH_SIZE, CAPACITY)
-# 测试数据及标签
-val_batch, val_label_batch = input_data.get_batch(val, val_label, IMG_W, IMG_H, BATCH_SIZE, CAPACITY)
+# ------------------ 数据加载 ------------------
+# 获取图片路径和标签，并拆分为训练集与验证集（验证集比例 0.3）
+train_images, train_labels, val_images, val_labels = input_data.get_files(train_dir, val_ratio=0.3)
 
-# 训练操作定义
-train_logits = model.inference(train_batch, BATCH_SIZE, N_CLASSES)
-train_loss = model.losses(train_logits, train_label_batch)
-train_op = model.trainning(train_loss, learning_rate)
-train_acc = model.evaluation(train_logits, train_label_batch)
+# 利用 tf.data 创建数据集
+train_dataset = input_data.get_batch(train_images, train_labels, IMG_W, IMG_H, BATCH_SIZE, CAPACITY)
+val_dataset   = input_data.get_batch(val_images, val_labels, IMG_W, IMG_H, BATCH_SIZE, CAPACITY)
 
-# 测试操作定义
-test_logits = model.inference(val_batch, BATCH_SIZE, N_CLASSES)
-test_loss = model.losses(test_logits, val_label_batch)
-test_acc = model.evaluation(test_logits, val_label_batch)
+# ------------------ 模型构建 ------------------
+# 调用 model.build_model 构建模型
+cnn_model = model.build_model(IMG_W, IMG_H, N_CLASSES)
 
-# 这个是log汇总记录
-summary_op = tf.summary.merge_all()
+# 编译模型：使用 Adam 优化器、稀疏分类交叉熵损失（标签为整数）、以及准确率指标
+cnn_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+                  loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+                  metrics=['accuracy'])
 
-# 产生一个会话
-sess = tf.Session()
-# 产生一个writer来写log文件
-train_writer = tf.summary.FileWriter(logs_train_dir, sess.graph)
-# val_writer = tf.summary.FileWriter(logs_test_dir, sess.graph)
-# 产生一个saver来存储训练好的模型
-saver = tf.train.Saver()
-# 所有节点初始化
-sess.run(tf.global_variables_initializer())
-# 队列监控
-coord = tf.train.Coordinator()
-threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+# ------------------ TensorBoard 回调 ------------------
+# 设置 TensorBoard 日志目录，便于可视化训练过程
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logs_train_dir, histogram_freq=1)
 
-# 进行batch的训练
-try:
-    # 执行MAX_STEP步的训练，一步一个batch
-    for step in np.arange(MAX_STEP):
-        if coord.should_stop():
-            break
-        _, tra_loss, tra_acc = sess.run([train_op, train_loss, train_acc])
-
-        # 每隔50步打印一次当前的loss以及acc，同时记录log，写入writer
-        if step % 10 == 0:
-            print('Step %d, train loss = %.2f, train accuracy = %.2f%%' % (step, tra_loss, tra_acc * 100.0))
-            summary_str = sess.run(summary_op)
-            train_writer.add_summary(summary_str, step)
-        # 每隔100步，保存一次训练好的模型
-        if (step + 1) == MAX_STEP:
-            checkpoint_path = os.path.join(logs_train_dir, 'model.ckpt')
-            saver.save(sess, checkpoint_path, global_step=step)
-
-except tf.errors.OutOfRangeError:
-    print('Done training -- epoch limit reached')
-
-finally:
-    coord.request_stop()
+# ------------------ 模型训练 ------------------
+# 使用 model.fit 进行训练
+# 若 MAX_STEP 过大，可根据数据集大小调整 steps_per_epoch 参数，或者直接省略让 Keras 自动计算
+cnn_model.fit(train_dataset,
+              epochs=EPOCHS,
+              steps_per_epoch=MAX_STEP,
+              validation_data=val_dataset,
+              callbacks=[tensorboard_callback])
