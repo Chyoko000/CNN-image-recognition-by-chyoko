@@ -9,7 +9,7 @@ IMG_H = 64            # 图像高度
 BATCH_SIZE = 20       # 每个批次图像数量
 CAPACITY = 200        # shuffle 时的缓冲区大小
 EPOCHS = 8           # 训练轮数（根据需要调整）
-MAX_STEP = 200        # 每个 epoch 的步数（根据数据集大小调整）
+MAX_STEP = 1000        # 每个 epoch 的步数（根据数据集大小调整）
 LEARNING_RATE = 0.0001  # 学习率
 
 # 数据和日志路径
