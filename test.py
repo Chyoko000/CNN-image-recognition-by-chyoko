@@ -83,7 +83,7 @@ def evaluate_one_image(image_array):
 
 if __name__ == '__main__':
     # 指定测试图片路径，可根据需要修改
-    image_path = r"C:\Users\c2543\Desktop\yjx.jpg"
+    image_path = r"C:\Users\c2543\Desktop\mg1.jpg"
 
     # 读取并展示图片
     image_array = get_one_image(image_path)
